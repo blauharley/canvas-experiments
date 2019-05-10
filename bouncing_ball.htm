@@ -1,0 +1,98 @@
+ <!DOCTYPE html>
+<html>
+<body>
+
+<canvas id="canvas" width="600" height="200"></canvas>
+
+</body>
+<script>
+
+var angle, speed, velx, vely, gravity, ball, points, hasBounce, rotAngle;
+
+function draw() {
+  var ctx = document.getElementById('canvas').getContext('2d');
+
+  document.getElementById('canvas').width = document.getElementById('canvas').width;
+
+  ball.x += ball.velx;
+
+  if (hasBounce) {
+    ball.vely += gravity;
+    ball.y += ball.vely;
+    if ((ball.y + 15) >= 200) {
+      ball.vely = -ball.vely;
+      gravity *= 1.5;
+      hasBounce = Math.abs(ball.vely - gravity) < 2;
+      ratAngleFriction *= 0.75;
+    }
+  } else {
+    ball.y = 185;
+    init();
+  }
+
+  points.push({
+    x: ball.x,
+    y: ball.y,
+    friction: ratAngleFriction
+  });
+  points.forEach(function(point, index) {
+    ctx.beginPath();
+    ctx.strokeStyle = index % 2 ? "#ff0000" : "#0000ff";
+    ctx.moveTo(point.x, point.y);
+    ctx.lineTo(point.x, point.y);
+    ctx.closePath();
+    ctx.stroke();
+
+  });
+
+  ctx.save();
+
+  ctx.beginPath();
+  ctx.fillStyle = '#ff0000';
+  ctx.lineWidth = 0;
+  ctx.strokeStyle = "red";
+  ctx.translate(ball.x, ball.y);
+  ctx.rotate(rotAngle += (5 * Math.PI / 180) * ratAngleFriction);
+  ctx.arc(-0.5, -0.5, ball.radius, 0, Math.PI * 2 / 4, false);
+  ctx.fill();
+  ctx.stroke();
+  ctx.closePath();
+
+  ctx.restore();
+
+
+  ctx.fillStyle = '#c3c3c3';
+  ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2, true);
+
+  ctx.fill();
+
+}
+
+function init() {
+  rotAngle = 0;
+  ratAngleFriction = 1;
+  angle = 305;
+  speedx = 1.1;
+  speedy = 1;
+  velx = Math.cos(angle * Math.PI / 180) * speedx;
+  vely = Math.sin(angle * Math.PI / 180) * speedy;
+
+  gravity = 0.005;
+
+  ball = {
+    x: 15,
+    y: 200 - 15,
+    velx: velx,
+    vely: vely,
+    radius: 15
+  };
+  points = [];
+  hasBounce = true;
+}
+
+init();
+
+setInterval(draw, 1);
+
+</script>
+</html> 

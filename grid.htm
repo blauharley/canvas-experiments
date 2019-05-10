@@ -1,0 +1,189 @@
+ <!DOCTYPE html>
+<html>
+<body>
+
+<div style="position: relative; top: 10%; width: 50%; margin: 0 auto">
+    <canvas id="canvas" width="500" height="375" style="border:1px solid #c3c3c3; padding-bottom: 5px; padding-right: 5px"></canvas>
+    <canvas id="magnifier" width="500" height="375" style="border:1px solid #c3c3c3;display: none;position: absolute;top:0px; left:0px;width: 500px;height: 375px;"></canvas>
+</div>
+<img src="grid_bg.jpg" id="img" style="display: none"/>
+
+</body>
+<script>
+
+var canvas=document.getElementById('canvas'),
+    magnifier=document.getElementById('magnifier'),
+    image=document.getElementById('img'),
+    grid,
+    rows=10,
+    cols=10,
+    partWidth,
+    partHeight,
+    imageWidthRation=0,
+    imageHeightRation=0,
+    padding=5;
+
+function drawGrid(grid){
+    var ctx = canvas.getContext('2d');
+    for(var col=0; col < cols; col++) {
+        for (var row = 0; row < rows; row++) {
+            var cell = grid[col][row];
+            var imageWidth = partWidth*imageWidthRation;
+            var imageheight = partHeight*imageHeightRation;
+            ctx.save();
+            ctx.translate(padding,padding);
+            ctx.drawImage(image,
+                cell.x*imageWidth, cell.y*imageheight, imageWidth, imageheight,
+                row*partWidth, col*partHeight, partWidth-padding, partHeight-padding
+            );
+            ctx.restore();
+        }
+    }
+}
+
+function getIdentiyGrid() {
+    var grid = [];
+    for(var col=0; col < cols; col++){
+      var gridRow = [];
+      for(var row=0; row < rows; row++){
+          gridRow.push({
+              x: row,
+              y: col
+          });
+      }
+      grid.push(gridRow);
+    }
+    return grid;
+}
+
+function animateCellMagifierEffect(clickedPosX, clickedPosY, truePosX, truePosY, canvasX, canvasY, row, col){
+    var originVector = {x:clickedPosX-canvasX, y: clickedPosY-canvasY};
+    magnifier.width = magnifier.width;
+    magnifier.style.display = 'block';
+    var ctx = magnifier.getContext('2d');
+    var imageWidth = partWidth*imageWidthRation;
+    var imageheight = partHeight*imageHeightRation;
+    var speedValue = 0.3;
+    var moved = false;
+    var interval = setInterval(function(){
+        var dx = originVector.x - canvasX;
+        var dy = originVector.y - canvasY;
+        var vecLength = Math.sqrt(dx*dx+dy*dy);
+        if(vecLength>0.001||!moved){
+            magnifier.width = magnifier.width;
+            var magifierFactorX = dx*speedValue;
+            var magifierFactorY = dy*speedValue;
+            ctx.save();
+            ctx.translate(padding, padding);
+            ctx.drawImage(
+                image,
+                truePosX, truePosY, imageWidth, imageheight,
+                dx, dy, partWidth-padding, partHeight-padding
+            );
+            ctx.restore();
+            originVector.x -= magifierFactorX;
+            originVector.y -= magifierFactorY;
+            moved = true;
+        }
+        else{
+            clearInterval(interval);
+            var steps = 12;
+            var currStep=0;
+            var stepX = 0;
+            var stepY = 0;
+            var interval2 = setInterval(function(){
+                ctx.drawImage(
+                    image,
+                    truePosX, truePosY, imageWidth, imageheight,
+                    padding, padding, partWidth+stepX, partHeight+stepY
+                );
+                stepX += (magnifier.width-partWidth-padding)/steps;
+                stepY += (magnifier.height-partHeight-padding)/steps;
+                if(currStep>=steps){
+                    clearInterval(interval2);
+                }
+                currStep++;
+            }, 50);
+        }
+    },50);
+}
+
+function mixGrid(grid){
+    var originalArray = [1,2,3,4,5,6,7,8,9];
+    var mixedCols = getMixedArray(originalArray);
+    for(var col=0; col < mixedCols.length; col++){
+        var mixedColIndex = mixedCols[col];
+        var mixedRows = getMixedArray(grid[mixedColIndex]);
+        var tmp = grid[col];
+        grid[col] = mixedRows;
+        grid[mixedColIndex] = tmp;
+        for(var row=0; row < mixedRows.length; row++){
+            var randRowIndex = Math.floor(row*col*Math.random()) % rows;
+            var randColIndex = Math.floor(row*col*Math.random()) % cols;
+            tmp = grid[randColIndex][randRowIndex];
+            grid[randColIndex][randRowIndex] = grid[col][row];
+            grid[col][row] = tmp;
+        }
+    }
+    return grid;
+}
+
+function getMixedArray(array){
+    var mixedElements = {};
+    var copyArray = [].concat(array);
+    var index = 0;
+    while(index++<array.length){
+        var ele = copyArray.shift();
+        var newIndex = index + Math.floor(Math.random() * index * array.length);
+        if(!mixedElements[newIndex]){
+            mixedElements[newIndex] = [];
+        }
+        mixedElements[newIndex].push(ele);
+    }
+    var mixedArray = [];
+    for(var mixedIndex in mixedElements){
+        mixedArray = mixedArray.concat(mixedElements[mixedIndex]);
+    }
+    return mixedArray;
+}
+
+function clickHandler(e){
+    var mouseX = e.clientX - canvas.parentNode.offsetLeft - canvas.offsetLeft;
+    var mouseY = e.clientY - canvas.parentNode.offsetTop - canvas.offsetTop;
+    var row = Math.floor(mouseX / partWidth);
+    var col = Math.floor(mouseY / partHeight);
+    var cell = grid[col][row];
+    var clickedPosX = row * partWidth;
+    var clickedPosY = col * partHeight;
+    var imageWidth = partWidth*imageWidthRation;
+    var imageheight = partHeight*imageHeightRation;
+    var truePosX = cell.x * imageWidth;
+    var truePosY = cell.y * imageheight;
+    animateCellMagifierEffect(
+        clickedPosX, clickedPosY,
+        truePosX, truePosY,
+        0,0,
+        row, col
+    );
+}
+
+function init(){
+    partWidth = canvas.width/rows;
+    partHeight = canvas.height/cols;
+    imageWidthRation = image.width/canvas.width;
+    imageHeightRation = image.height/canvas.height;
+    grid = mixGrid(getIdentiyGrid());
+    drawGrid(grid);
+}
+
+image.onload = function(){
+    init();
+    canvas.addEventListener('click', clickHandler);
+    magnifier.addEventListener('click', function(){
+        magnifier.style.display = 'none';
+    });
+};
+
+
+</script>
+</html> 
